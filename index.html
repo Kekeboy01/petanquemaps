@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Carte des terrains de pétanque</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    #map {
+      height: 80vh;
+      width: 100%;
+    }
+
+    #formulaire {
+      padding: 10px;
+      background: #f0f0f0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    #formulaire input,
+    #formulaire select,
+    #formulaire button {
+      padding: 5px;
+    }
+
+    #filtre-container {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .popup-btn {
+      margin-top: 5px;
+      display: inline-block;
+      background-color: #e74c3c;
+      color: white;
+      padding: 3px 6px;
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Formulaire -->
+<div id="formulaire">
+  <strong>➕ Ajouter un terrain</strong>
+  <input id="name" placeholder="Nom du terrain" />
+  <select id="region">
+    <option>Bruxelles</option>
+    <option>Wallonie</option>
+    <option>Flandre</option>
+  </select>
+  <select id="rating">
+    <option value="1">⭐</option>
+    <option value="2">⭐⭐</option>
+    <option value="3">⭐⭐⭐</option>
+    <option value="4">⭐⭐⭐⭐</option>
+    <option value="5">⭐⭐⭐⭐⭐</option>
+  </select>
+  <input id="lat" placeholder="Latitude" />
+  <input id="lng" placeholder="Longitude" />
+  <button onclick="addTerrain()">Ajouter</button>
+
+  <!-- Filtres -->
+  <div id="filtre-container">
+    <strong>🔍 Filtrer les terrains</strong>
+    <select id="filtre-region">
+      <option value="">Toutes les régions</option>
+      <option>Bruxelles</option>
+      <option>Wallonie</option>
+      <option>Flandre</option>
+    </select>
+
+    <select id="filtre-note">
+      <option value="">Toutes les notes</option>
+      <option value="1">≥ 1 ⭐</option>
+      <option value="2">≥ 2 ⭐</option>
+      <option value="3">≥ 3 ⭐</option>
+      <option value="4">≥ 4 ⭐</option>
+      <option value="5">5 ⭐</option>
+    </select>
+
+    <button onclick="appliquerFiltres()">Filtrer</button>
+  </div>
+</div>
+
+<!-- Carte -->
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBuVhNOiL1B3NRJrhE7b3NhT9-gL2L-0rE",
+    authDomain: "petanque-map.firebaseapp.com",
+    projectId: "petanque-map",
+    storageBucket: "petanque-map.appspot.com",
+    messagingSenderId: "806898855194",
+    appId: "1:806898855194:web:6c49fa2f54eb68697bd0a3",
+    measurementId: "G-LG9ZJ3ZTNJ"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
+
+<script>
+  const map = L.map('map').setView([50.5, 4.5], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  let markers = [];
+
+  function addTerrain() {
+    const name = document.getElementById("name").value;
+    const region = document.getElementById("region").value;
+    const rating = parseInt(document.getElementById("rating").value);
+    const lat = parseFloat(document.getElementById("lat").value);
+    const lng = parseFloat(document.getElementById("lng").value);
+
+    if (!name || isNaN(lat) || isNaN(lng)) {
+      alert("⚠️ Veuillez remplir tous les champs correctement.");
+      return;
+    }
+
+    db.collection("terrains").add({ name, region, rating, lat, lng })
+      .then(() => {
+        alert("✅ Terrain ajouté !");
+      })
+      .catch(error => {
+        console.error("Erreur d'ajout :", error);
+        alert("❌ Erreur lors de l'ajout !");
+      });
+  }
+
+  map.on("click", function(e) {
+    document.getElementById("lat").value = e.latlng.lat.toFixed(6);
+    document.getElementById("lng").value = e.latlng.lng.toFixed(6);
+  });
+
+  // Temps réel
+  db.collection("terrains").onSnapshot(snapshot => {
+    const terrains = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    afficherTerrains(terrains);
+  });
+
+  function appliquerFiltres() {
+    const region = document.getElementById("filtre-region").value;
+    const noteMin = parseInt(document.getElementById("filtre-note").value);
+
+    db.collection("terrains").get().then(snapshot => {
+      const filtres = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(data => {
+          const matchRegion = region === "" || data.region === region;
+          const matchNote = isNaN(noteMin) || data.rating >= noteMin;
+          return matchRegion && matchNote;
+        });
+
+      afficherTerrains(filtres);
+    });
+  }
+
+  function afficherTerrains(terrains) {
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+
+    terrains.sort((a, b) => b.rating - a.rating);
+
+    terrains.forEach(data => {
+      const marker = L.marker([data.lat, data.lng]).addTo(map);
+      const popup = `
+        <strong>${data.name}</strong><br>
+        ${data.region}<br>
+        Note : ${data.rating} ⭐<br>
+        <div class="popup-btn" onclick="supprimerTerrain('${data.id}')">🗑 Supprimer</div>
+      `;
+      marker.bindPopup(popup);
+      markers.push(marker);
+    });
+  }
+
+  function supprimerTerrain(id) {
+    if (confirm("Supprimer ce terrain ?")) {
+      db.collection("terrains").doc(id).delete()
+        .then(() => alert("✅ Terrain supprimé"))
+        .catch(error => alert("❌ Erreur : " + error));
+    }
+  }
+</script>
+
+</body>
+</html>
