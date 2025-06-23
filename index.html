@@ -49,14 +49,24 @@
       border-radius: 4px;
       cursor: pointer;
     }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
 
 <!-- Formulaire -->
 <div id="formulaire">
-  <strong>➕ Ajouter un terrain</strong>
-  <input id="name" placeholder="Nom du terrain" />
+  <strong>➕ Ajouter</strong>
+  <select id="type-ajout" onchange="switchFormType()">
+    <option value="terrain">un terrain</option>
+    <option value="club">un club</option>
+  </select>
+  <!-- Nom terrain -->
+  <input id="name-terrain" placeholder="Nom du terrain" />
+  <!-- Nom club -->
+  <input id="name-club" placeholder="Nom du club" class="hidden" />
   <select id="region">
     <option>Bruxelles</option>
     <option>Wallonie</option>
@@ -69,9 +79,10 @@
     <option value="4">⭐⭐⭐⭐</option>
     <option value="5">⭐⭐⭐⭐⭐</option>
   </select>
+  <input id="adresse" placeholder="Adresse" />
   <input id="lat" placeholder="Latitude" />
   <input id="lng" placeholder="Longitude" />
-  <button onclick="addTerrain()">Ajouter</button>
+  <button onclick="addLieu()">Ajouter</button>
 
   <!-- Filtres -->
   <div id="filtre-container">
@@ -122,6 +133,15 @@
 </script>
 
 <script>
+  // Changement dynamique du formulaire
+  function switchFormType() {
+    const type = document.getElementById("type-ajout").value;
+    document.getElementById("name-terrain").classList.toggle("hidden", type !== "terrain");
+    document.getElementById("name-club").classList.toggle("hidden", type !== "club");
+    document.getElementById("adresse").placeholder = (type === "terrain") ? "Adresse du terrain" : "Adresse du club";
+  }
+
+  // Initialisation carte
   const map = L.map('map').setView([50.5, 4.5], 8);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
@@ -129,21 +149,27 @@
 
   let markers = [];
 
-  function addTerrain() {
-    const name = document.getElementById("name").value;
+  function addLieu() {
+    const type = document.getElementById("type-ajout").value;
+    const name = type === "terrain" 
+      ? document.getElementById("name-terrain").value 
+      : document.getElementById("name-club").value;
     const region = document.getElementById("region").value;
     const rating = parseInt(document.getElementById("rating").value);
     const lat = parseFloat(document.getElementById("lat").value);
     const lng = parseFloat(document.getElementById("lng").value);
+    const adresse = document.getElementById("adresse").value;
 
-    if (!name || isNaN(lat) || isNaN(lng)) {
+    if (!name || isNaN(lat) || isNaN(lng) || !adresse) {
       alert("⚠️ Veuillez remplir tous les champs correctement.");
       return;
     }
 
-    db.collection("terrains").add({ name, region, rating, lat, lng })
+    db.collection("lieux").add({ 
+      type, name, region, rating, lat, lng, adresse 
+    })
       .then(() => {
-        alert("✅ Terrain ajouté !");
+        alert("✅ Ajout réussi !");
       })
       .catch(error => {
         console.error("Erreur d'ajout :", error);
@@ -157,19 +183,19 @@
   });
 
   // Temps réel
-  db.collection("terrains").onSnapshot(snapshot => {
-    const terrains = snapshot.docs.map(doc => ({
+  db.collection("lieux").onSnapshot(snapshot => {
+    const lieux = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
-    afficherTerrains(terrains);
+    afficherLieux(lieux);
   });
 
   function appliquerFiltres() {
     const region = document.getElementById("filtre-region").value;
     const noteMin = parseInt(document.getElementById("filtre-note").value);
 
-    db.collection("terrains").get().then(snapshot => {
+    db.collection("lieux").get().then(snapshot => {
       const filtres = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(data => {
@@ -178,36 +204,41 @@
           return matchRegion && matchNote;
         });
 
-      afficherTerrains(filtres);
+      afficherLieux(filtres);
     });
   }
 
-  function afficherTerrains(terrains) {
+  function afficherLieux(lieux) {
     markers.forEach(m => map.removeLayer(m));
     markers = [];
 
-    terrains.sort((a, b) => b.rating - a.rating);
+    lieux.sort((a, b) => b.rating - a.rating);
 
-    terrains.forEach(data => {
+    lieux.forEach(data => {
       const marker = L.marker([data.lat, data.lng]).addTo(map);
+      let typeLabel = data.type === "club" ? "Club" : "Terrain";
       const popup = `
-        <strong>${data.name}</strong><br>
+        <strong>${typeLabel} : ${data.name}</strong><br>
         ${data.region}<br>
         Note : ${data.rating} ⭐<br>
-        <div class="popup-btn" onclick="supprimerTerrain('${data.id}')">🗑 Supprimer</div>
+        Adresse : ${data.adresse}<br>
+        <div class="popup-btn" onclick="supprimerLieu('${data.id}')">🗑 Supprimer</div>
       `;
       marker.bindPopup(popup);
       markers.push(marker);
     });
   }
 
-  function supprimerTerrain(id) {
-    if (confirm("Supprimer ce terrain ?")) {
-      db.collection("terrains").doc(id).delete()
-        .then(() => alert("✅ Terrain supprimé"))
+  function supprimerLieu(id) {
+    if (confirm("Supprimer ce lieu ?")) {
+      db.collection("lieux").doc(id).delete()
+        .then(() => alert("✅ Lieu supprimé"))
         .catch(error => alert("❌ Erreur : " + error));
     }
   }
+
+  // Appel au chargement pour adapter l'affichage du formulaire
+  document.addEventListener('DOMContentLoaded', switchFormType);
 </script>
 
 </body>
