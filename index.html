@@ -1,245 +1,358 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">function afficherTerrains(terrains) {function supprimerTerrain(id) {function afficherTerrains(terrains) {function afficherTerrains(terrains) {function afficherTerrains(terrains) {
 <head>
-  <meta charset="UTF-8">
-  <title>Carte des terrains de pétanque</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Leaflet CSS -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pétanque Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
-      font-family: sans-serif;
+      font-family: 'Inter', sans-serif;
+      background-color: #f4f6f9;
+    }
+
+    header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 1rem;
+      font-size: 1.5rem;
+      text-align: center;
+      font-weight: 600;
     }
 
     #map {
-      height: 80vh;
+      height: 75vh;
       width: 100%;
+      z-index: 1;
     }
 
-    #formulaire {
-      padding: 10px;
-      background: #f0f0f0;
+    #auth {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
       gap: 10px;
+      max-width: 300px;
+      margin: 50px auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    #auth input, #auth button {
+      padding: 0.8rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    #auth button {
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      font-weight: bold;
+    }
+
+    #auth button:hover {
+      background-color: #2471a3;
+    }
+
+    #addModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      justify-content: center;
       align-items: center;
+      z-index: 9999;
     }
 
-    #formulaire input,
-    #formulaire select,
-    #formulaire button {
-      padding: 5px;
+    #addForm {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 90%;
+      max-width: 400px;
+      position: relative;
     }
 
-    #filtre-container {
-      width: 100%;
-      margin-top: 10px;
+    #addForm input, #addForm select, #addForm button {
+      padding: 0.7rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    #addForm button {
+      background-color: #27ae60;
+      color: white;
+      border: none;
+      font-weight: bold;
+    }
+
+    #addForm button:hover {
+      background-color: #219150;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #999;
+      cursor: pointer;
     }
 
     .popup-btn {
-      margin-top: 5px;
       display: inline-block;
-      background-color: #e74c3c;
+      margin-top: 5px;
+      margin-right: 5px;
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      border-radius: 6px;
       color: white;
-      padding: 3px 6px;
-      font-size: 12px;
-      border-radius: 4px;
       cursor: pointer;
     }
-    .hidden {
-      display: none;
+
+    .popup-btn.edit-btn {
+      background-color: #3498db;
+    }
+
+    .popup-btn.delete-btn {
+      background-color: #e74c3c;
     }
   </style>
 </head>
 <body>
+  <header>📍 Carte des terrains de Pétanque</header>
 
-<!-- Formulaire -->
-<div id="formulaire">
-  <strong>➕ Ajouter</strong>
-  <select id="type-ajout" onchange="switchFormType()">
-    <option value="terrain">un terrain</option>
-    <option value="club">un club</option>
-  </select>
-  <!-- Nom terrain -->
-  <input id="name-terrain" placeholder="Nom du terrain" />
-  <!-- Nom club -->
-  <input id="name-club" placeholder="Nom du club" class="hidden" />
-  <select id="region">
-    <option>Bruxelles</option>
-    <option>Wallonie</option>
-    <option>Flandre</option>
-  </select>
-  <select id="rating">
-    <option value="1">⭐</option>
-    <option value="2">⭐⭐</option>
-    <option value="3">⭐⭐⭐</option>
-    <option value="4">⭐⭐⭐⭐</option>
-    <option value="5">⭐⭐⭐⭐⭐</option>
-  </select>
-  <input id="adresse" placeholder="Adresse" />
-  <input id="lat" placeholder="Latitude" />
-  <input id="lng" placeholder="Longitude" />
-  <button onclick="addLieu()">Ajouter</button>
-
-  <!-- Filtres -->
-  <div id="filtre-container">
-    <strong>🔍 Filtrer les terrains</strong>
-    <select id="filtre-region">
-      <option value="">Toutes les régions</option>
-      <option>Bruxelles</option>
-      <option>Wallonie</option>
-      <option>Flandre</option>
-    </select>
-
-    <select id="filtre-note">
-      <option value="">Toutes les notes</option>
-      <option value="1">≥ 1 ⭐</option>
-      <option value="2">≥ 2 ⭐</option>
-      <option value="3">≥ 3 ⭐</option>
-      <option value="4">≥ 4 ⭐</option>
-      <option value="5">5 ⭐</option>
-    </select>
-
-    <button onclick="appliquerFiltres()">Filtrer</button>
+  <div id="auth">
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Mot de passe" />
+    <button onclick="login()">Se connecter</button>
+    <button onclick="register()">Créer un compte</button>
+    <p id="message"></p>
   </div>
-</div>
 
-<!-- Carte -->
-<div id="map"></div>
+  <div id="map" style="display: none;"></div>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <div id="addModal">
+    <div id="addForm">
+      <div class="close-btn" onclick="fermerModal()">✖</div>
+      <input id="name" placeholder="Nom du terrain" />
+      <input id="club" placeholder="Nom du club (facultatif)" />
+      <select id="region">
+        <option value="Wallonie">Wallonie</option>
+        <option value="Bruxelles">Bruxelles</option>
+        <option value="Flandre">Flandre</option>
+      </select>
+      <select id="rating">
+        <option value="1">⭐</option>
+        <option value="2">⭐⭐</option>
+        <option value="3">⭐⭐⭐</option>
+        <option value="4">⭐⭐⭐⭐</option>
+        <option value="5">⭐⭐⭐⭐⭐</option>
+      </select>
+      <input id="lat" placeholder="Latitude" />
+      <input id="lng" placeholder="Longitude" />
+      <button onclick="addOrUpdateTerrain()">Enregistrer</button>
+    </div>
+  </div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuVhNOiL1B3NRJrhE7b3NhT9-gL2L-0rE",
+      authDomain: "petanque-map.firebaseapp.com",
+      projectId: "petanque-map",
+      storageBucket: "petanque-map.appspot.com",
+      messagingSenderId: "806898855194",
+      appId: "1:806898855194:web:6c49fa2f54eb68697bd0a3",
+      measurementId: "G-LG9ZJ3ZTNJ"
+    };
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBuVhNOiL1B3NRJrhE7b3NhT9-gL2L-0rE",
-    authDomain: "petanque-map.firebaseapp.com",
-    projectId: "petanque-map",
-    storageBucket: "petanque-map.appspot.com",
-    messagingSenderId: "806898855194",
-    appId: "1:806898855194:web:6c49fa2f54eb68697bd0a3",
-    measurementId: "G-LG9ZJ3ZTNJ"
-  };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-</script>
+    let currentUser = null;
+    let map, markerTemp = null;
+    let terrainActuelId = null;
+    let markers = [];
 
-<script>
-  // Changement dynamique du formulaire
-  function switchFormType() {
-    const type = document.getElementById("type-ajout").value;
-    document.getElementById("name-terrain").classList.toggle("hidden", type !== "terrain");
-    document.getElementById("name-club").classList.toggle("hidden", type !== "club");
-    document.getElementById("adresse").placeholder = (type === "terrain") ? "Adresse du terrain" : "Adresse du club";
-  }
+    auth.onAuthStateChanged(user => {
+      if (user && user.emailVerified) {
+        currentUser = user;
+        document.getElementById("auth").style.display = "none";
+        document.getElementById("map").style.display = "block";
+        initMap();
+      } else {
+        currentUser = null;
+        document.getElementById("auth").style.display = "flex";
+        document.getElementById("map").style.display = "none";
+      }
+    });
 
-  // Initialisation carte
-  const map = L.map('map').setView([50.5, 4.5], 8);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
-
-  let markers = [];
-
-  function addLieu() {
-    const type = document.getElementById("type-ajout").value;
-    const name = type === "terrain" 
-      ? document.getElementById("name-terrain").value 
-      : document.getElementById("name-club").value;
-    const region = document.getElementById("region").value;
-    const rating = parseInt(document.getElementById("rating").value);
-    const lat = parseFloat(document.getElementById("lat").value);
-    const lng = parseFloat(document.getElementById("lng").value);
-    const adresse = document.getElementById("adresse").value;
-
-    if (!name || isNaN(lat) || isNaN(lng) || !adresse) {
-      alert("⚠️ Veuillez remplir tous les champs correctement.");
-      return;
+    function register() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          userCredential.user.sendEmailVerification();
+          alert("Un e-mail de vérification a été envoyé !");
+        })
+        .catch(e => alert(e.message));
     }
 
-    db.collection("lieux").add({ 
-      type, name, region, rating, lat, lng, adresse 
-    })
-      .then(() => {
-        alert("✅ Ajout réussi !");
-      })
-      .catch(error => {
-        console.error("Erreur d'ajout :", error);
-        alert("❌ Erreur lors de l'ajout !");
-      });
-  }
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          if (!userCredential.user.emailVerified) {
+            alert("Veuillez vérifier votre adresse e-mail !");
+            auth.signOut();
+          }
+        })
+        .catch(e => alert(e.message));
+    }
 
-  map.on("click", function(e) {
-    document.getElementById("lat").value = e.latlng.lat.toFixed(6);
-    document.getElementById("lng").value = e.latlng.lng.toFixed(6);
-  });
+    function initMap() {
+      map = L.map('map').setView([50.5, 4.5], 8);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
 
-  // Temps réel
-  db.collection("lieux").onSnapshot(snapshot => {
-    const lieux = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    afficherLieux(lieux);
-  });
-
-  function appliquerFiltres() {
-    const region = document.getElementById("filtre-region").value;
-    const noteMin = parseInt(document.getElementById("filtre-note").value);
-
-    db.collection("lieux").get().then(snapshot => {
-      const filtres = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(data => {
-          const matchRegion = region === "" || data.region === region;
-          const matchNote = isNaN(noteMin) || data.rating >= noteMin;
-          return matchRegion && matchNote;
+      // Localisation automatique
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const { latitude, longitude } = pos.coords;
+          map.setView([latitude, longitude], 14);
+          L.circle([latitude, longitude], {
+            radius: 50,
+            color: "blue",
+            fillColor: "#30f",
+            fillOpacity: 0.3
+          }).addTo(map).bindPopup("📍 Vous êtes ici").openPopup();
         });
+      }
 
-      afficherLieux(filtres);
+      map.on("click", e => {
+        if (!currentUser) return;
+        const { lat, lng } = e.latlng;
+        document.getElementById("lat").value = lat.toFixed(6);
+        document.getElementById("lng").value = lng.toFixed(6);
+        if (!markerTemp) markerTemp = L.marker(e.latlng, { opacity: 0.6 }).addTo(map);
+        else markerTemp.setLatLng(e.latlng);
+        document.getElementById("addModal").style.display = "flex";
+      });
+// Fonction pour obtenir l'adresse à partir des coordonnées (reverse geocoding)
+function getAdresse(lat, lng, callback) {
+  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=fr`)
+    .then(response => response.json())
+    .then(data => {
+      callback(data.display_name || "Adresse non trouvée");
+    })
+    .catch(() => {
+      callback("Adresse non trouvée");
     });
-  }
+}
+      db.collection("terrains").onSnapshot(snapshot => {
+        const terrains = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+               function supprimerTerrain(id) {
+      const name = document.getElementById("name").      function afficherTerrains(terrains) {      function afficherTerrains(terrains) {      function afficherTerrains(terrains) {      function supprimerTerrain(id) {value;
+      const region = document.getElementById("region").value;
+      const rating = parseInt(document.getElementById("rating").value);
+      const club = document.getElementById("club").value;
+      const lat = parseFloat(document.getElementById("lat").value);
+      const lng = parseFloat(document.getElementById("lng").value);
+      if (!name || isNaN(lat) || isNaN(lng)) {
+        alert("Veuillez remplir tous les champs obligatoires.");
+        return;
+      }
 
-  function afficherLieux(lieux) {
-    markers.forEach(m => map.removeLayer(m));
-    markers = [];
+      const data = {
+        name, region, rating, club,
+        lat, lng,
+        userId: currentUser.uid
+      };
 
-    lieux.sort((a, b) => b.rating - a.rating);
-
-    lieux.forEach(data => {
-      const marker = L.marker([data.lat, data.lng]).addTo(map);
-      let typeLabel = data.type === "club" ? "Club" : "Terrain";
-      const popup = `
-        <strong>${typeLabel} : ${data.name}</strong><br>
-        ${data.region}<br>
-        Note : ${data.rating} ⭐<br>
-        Adresse : ${data.adresse}<br>
-        <div class="popup-btn" onclick="supprimerLieu('${data.id}')">🗑 Supprimer</div>
-      `;
-      marker.bindPopup(popup);
-      markers.push(marker);
-    });
-  }
-
-  function supprimerLieu(id) {
-    if (confirm("Supprimer ce lieu ?")) {
-      db.collection("lieux").doc(id).delete()
-        .then(() => alert("✅ Lieu supprimé"))
-        .catch(error => alert("❌ Erreur : " + error));
+      if (terrainActuelId) {
+        db.collection("terrains").doc(terrainActuelId).update(data).then(() => {
+          terrainActuelId = null;
+          fermerModal();
+        });
+      } else {
+        db.collection("terrains").add(data).then(() => {
+          fermerModal();
+        });
+      }
     }
-  }
 
-  // Appel au chargement pour adapter l'affichage du formulaire
-  document.addEventListener('DOMContentLoaded', switchFormType);
-</script>
+    function afficherTerrains(terrains) {
+      markers.forEach(marker => map.removeLayer(marker));
+      markers = [];
 
+      terrains.forEach(data => {
+        const marker = L.marker([data.lat, data.lng]).addTo(map);
+        const popup = `
+          <strong>${data.name}</strong><br>
+          ${data.region} – Note : ${data.rating} ⭐<br>
+          ${data.club ? `Club : ${data.club}<br>` : ""}
+          ${currentUser && currentUser.uid === data.userId
+            ? `
+              <div class="popup-btn delete-btn" onclick="supprimerTerrain('${data.id}')">🗑 Supprimer</div>
+              <div class="popup-btn edit-btn" onclick="remplirFormulaire('${data.id}')">✏️ Modifier</div>
+            `
+            : ""}
+        `;
+        marker.bindPopup(popup);
+        markers.push(marker);
+      });
+    }
+
+    function supprimerTerrain(id) {
+      if (confirm("Supprimer ce terrain ?")) {
+        db.collection("terrains").doc(id).delete();
+      }
+    }
+
+    function remplirFormulaire(id) {
+      db.collection("terrains").doc(id).get().then(doc => {
+        const data = doc.data();
+        if (currentUser && data.userId === currentUser.uid) {
+          document.getElementById("name").value = data.name;
+          document.getElementById("region").value = data.region;
+          document.getElementById("rating").value = data.rating;
+          document.getElementById("club").value = data.club || "";
+          document.getElementById("lat").value = data.lat;
+          document.getElementById("lng").value = data.lng;
+          terrainActuelId = id;
+          document.getElementById("addModal").style.display = "flex";
+        }
+      });
+    }
+
+    function fermerModal() {
+      document.getElementById("addModal").style.display = "none";
+      document.getElementById("name").value = "";
+      document.getElementById("club").value = "";
+      document.getElementById("lat").value = "";
+      document.getElementById("lng").value = "";
+      terrainActuelId = null;
+      if (markerTemp) {
+        map.removeLayer(markerTemp);
+        markerTemp = null;
+      }
+    }
+  </script>
 </body>
 </html>
