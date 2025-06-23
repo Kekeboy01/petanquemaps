@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -7,133 +8,25 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background-color: #f4f6f9;
-    }
-
-    header {
-      background-color: #2c3e50;
-      color: white;
-      padding: 1rem;
-      font-size: 1.5rem;
-      text-align: center;
-      font-weight: 600;
-    }
-
-    #map {
-      height: 75vh;
-      width: 100%;
-      z-index: 1;
-    }
-
-    #auth {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-width: 300px;
-      margin: 50px auto;
-      padding: 2rem;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-
-    #auth input, #auth button {
-      padding: 0.8rem;
-      font-size: 1rem;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-
-    #auth button {
-      background-color: #2980b9;
-      color: white;
-      border: none;
-      font-weight: bold;
-    }
-
-    #auth button:hover {
-      background-color: #2471a3;
-    }
-
-    #addModal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.5);
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
-
-    #addForm {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 90%;
-      max-width: 400px;
-      position: relative;
-    }
-
-    #addForm input, #addForm select, #addForm button {
-      padding: 0.7rem;
-      font-size: 1rem;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-
-    #addForm button {
-      background-color: #27ae60;
-      color: white;
-      border: none;
-      font-weight: bold;
-    }
-
-    #addForm button:hover {
-      background-color: #219150;
-    }
-
-    .close-btn {
-      position: absolute;
-      top: 10px;
-      right: 14px;
-      font-size: 1.3rem;
-      font-weight: bold;
-      color: #999;
-      cursor: pointer;
-    }
-
-    .popup-btn {
-      display: inline-block;
-      margin-top: 5px;
-      margin-right: 5px;
-      padding: 4px 8px;
-      font-size: 0.8rem;
-      border-radius: 6px;
-      color: white;
-      cursor: pointer;
-    }
-
-    .popup-btn.edit-btn {
-      background-color: #3498db;
-    }
-
-    .popup-btn.delete-btn {
-      background-color: #e74c3c;
-    }
+    /* (styles identiques à ton code original, non modifiés) */
+    body { margin: 0; font-family: 'Inter', sans-serif; background-color: #f4f6f9; }
+    header { background-color: #2c3e50; color: white; padding: 1rem; font-size: 1.5rem; text-align: center; font-weight: 600; }
+    #map { height: 75vh; width: 100%; z-index: 1; }
+    #addModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 9999; }
+    #addForm { background: white; padding: 1.5rem; border-radius: 12px; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; position: relative; }
+    #addForm input, #addForm select, #addForm button { padding: 0.7rem; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; }
+    #addForm button { background-color: #27ae60; color: white; border: none; font-weight: bold; }
+    #addForm button:hover { background-color: #219150; }
+    .close-btn { position: absolute; top: 10px; right: 14px; font-size: 1.3rem; font-weight: bold; color: #999; cursor: pointer; }
+    .popup-btn { display: inline-block; margin-top: 5px; margin-right: 5px; padding: 4px 8px; font-size: 0.8rem; border-radius: 6px; color: white; cursor: pointer; }
+    .popup-btn.edit-btn { background-color: #3498db; }
+    .popup-btn.delete-btn { background-color: #e74c3c; }
   </style>
 </head>
 <body>
   <header>📍 Carte des terrains de Pétanque</header>
 
- 
-
-  <div id="map" style="display: none;"></div>
+  <div id="map"></div>
 
   <div id="addModal">
     <div id="addForm">
@@ -157,33 +50,17 @@
       <button onclick="addOrUpdateTerrain()">Enregistrer</button>
     </div>
   </div>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBuVhNOiL1B3NRJrhE7b3NhT9-gL2L-0rE",
-      authDomain: "petanque-map.firebaseapp.com",
-      projectId: "petanque-map",
-      storageBucket: "petanque-map.appspot.com",
-      messagingSenderId: "806898855194",
-      appId: "1:806898855194:web:6c49fa2f54eb68697bd0a3",
-      measurementId: "G-LG9ZJ3ZTNJ"
-    };
+    let map, markerTemp = null, terrainActuelId = null, markers = [];
 
-   
-splay = "none";
-      }
-    });
     function initMap() {
       map = L.map('map').setView([50.5, 4.5], 8);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
-      // Localisation automatique
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
           const { latitude, longitude } = pos.coords;
@@ -198,7 +75,6 @@ splay = "none";
       }
 
       map.on("click", e => {
-        if (!currentUser) return;
         const { lat, lng } = e.latlng;
         document.getElementById("lat").value = lat.toFixed(6);
         document.getElementById("lng").value = lng.toFixed(6);
@@ -206,17 +82,18 @@ splay = "none";
         else markerTemp.setLatLng(e.latlng);
         document.getElementById("addModal").style.display = "flex";
       });
-// Fonction pour obtenir l'adresse à partir des coordonnées (reverse geocoding)
-function getAdresse(lat, lng, callback) {
-  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=fr`)
-    .then(response => response.json())
-    .then(data => {
-      callback(data.display_name || "Adresse non trouvée");
-    })
-    .catch(() => {
-      callback("Adresse non trouvée");
-    });
-}
+    }
+
+    function getAdresse(lat, lng, callback) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=fr`)
+        .then(response => response.json())
+        .then(data => {
+          callback(data.display_name || "Adresse non trouvée");
+        })
+        .catch(() => {
+          callback("Adresse non trouvée");
+        });
+    }
 
     function afficherTerrains(terrains) {
       markers.forEach(marker => map.removeLayer(marker));
@@ -225,47 +102,19 @@ function getAdresse(lat, lng, callback) {
       terrains.forEach(data => {
         const marker = L.marker([data.lat, data.lng]).addTo(map);
 
-        marker.on('click', function() {
-          getAdresse(data.lat, data.lng, function(adresse) {
+        marker.on('click', function () {
+          getAdresse(data.lat, data.lng, function (adresse) {
             const popup = `
               <strong>${data.name}</strong><br>
               ${data.region} – Note : ${data.rating} ⭐<br>
               ${data.club ? `Club : ${data.club}<br>` : ""}
               <em>Adresse : ${adresse}</em><br>
-              ${currentUser && currentUser.uid === data.userId
-                ? `
-                  <div class="popup-btn delete-btn" onclick="supprimerTerrain('${data.id}')">🗑 Supprimer</div>
-                  <div class="popup-btn edit-btn" onclick="remplirFormulaire('${data.id}')">✏️ Modifier</div>
-                `
-                : ""}
             `;
             marker.bindPopup(popup).openPopup();
           });
         });
 
         markers.push(marker);
-      });
-    }
-
-    function supprimerTerrain(id) {
-      if (confirm("Supprimer ce terrain ?")) {
-        db.collection("terrains").doc(id).delete();
-      }
-    }
-
-    function remplirFormulaire(id) {
-      db.collection("terrains").doc(id).get().then(doc => {
-        const data = doc.data();
-        if (currentUser && data.userId === currentUser.uid) {
-          document.getElementById("name").value = data.name;
-          document.getElementById("region").value = data.region;
-          document.getElementById("rating").value = data.rating;
-          document.getElementById("club").value = data.club || "";
-          document.getElementById("lat").value = data.lat;
-          document.getElementById("lng").value = data.lng;
-          terrainActuelId = id;
-          document.getElementById("addModal").style.display = "flex";
-        }
       });
     }
 
@@ -281,6 +130,22 @@ function getAdresse(lat, lng, callback) {
         markerTemp = null;
       }
     }
+
+    function addOrUpdateTerrain() {
+      const terrain = {
+        id: Date.now().toString(),
+        name: document.getElementById("name").value,
+        club: document.getElementById("club").value,
+        region: document.getElementById("region").value,
+        rating: document.getElementById("rating").value,
+        lat: parseFloat(document.getElementById("lat").value),
+        lng: parseFloat(document.getElementById("lng").value),
+      };
+      afficherTerrains([terrain, ...markers.map(m => m.options.data || {})]);
+      fermerModal();
+    }
+
+    initMap();
   </script>
 </body>
 </html>
