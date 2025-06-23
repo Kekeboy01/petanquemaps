@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">function afficherTerrains(terrains) {function supprimerTerrain(id) {function afficherTerrains(terrains) {function afficherTerrains(terrains) {function afficherTerrains(terrains) {
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -265,37 +265,6 @@ function getAdresse(lat, lng, callback) {
       callback("Adresse non trouvée");
     });
 }
-      db.collection("terrains").onSnapshot(snapshot => {
-        const terrains = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-               function supprimerTerrain(id) {
-      const name = document.getElementById("name").      function afficherTerrains(terrains) {      function afficherTerrains(terrains) {      function afficherTerrains(terrains) {      function supprimerTerrain(id) {value;
-      const region = document.getElementById("region").value;
-      const rating = parseInt(document.getElementById("rating").value);
-      const club = document.getElementById("club").value;
-      const lat = parseFloat(document.getElementById("lat").value);
-      const lng = parseFloat(document.getElementById("lng").value);
-      if (!name || isNaN(lat) || isNaN(lng)) {
-        alert("Veuillez remplir tous les champs obligatoires.");
-        return;
-      }
-
-      const data = {
-        name, region, rating, club,
-        lat, lng,
-        userId: currentUser.uid
-      };
-
-      if (terrainActuelId) {
-        db.collection("terrains").doc(terrainActuelId).update(data).then(() => {
-          terrainActuelId = null;
-          fermerModal();
-        });
-      } else {
-        db.collection("terrains").add(data).then(() => {
-          fermerModal();
-        });
-      }
-    }
 
     function afficherTerrains(terrains) {
       markers.forEach(marker => map.removeLayer(marker));
@@ -303,18 +272,25 @@ function getAdresse(lat, lng, callback) {
 
       terrains.forEach(data => {
         const marker = L.marker([data.lat, data.lng]).addTo(map);
-        const popup = `
-          <strong>${data.name}</strong><br>
-          ${data.region} – Note : ${data.rating} ⭐<br>
-          ${data.club ? `Club : ${data.club}<br>` : ""}
-          ${currentUser && currentUser.uid === data.userId
-            ? `
-              <div class="popup-btn delete-btn" onclick="supprimerTerrain('${data.id}')">🗑 Supprimer</div>
-              <div class="popup-btn edit-btn" onclick="remplirFormulaire('${data.id}')">✏️ Modifier</div>
-            `
-            : ""}
-        `;
-        marker.bindPopup(popup);
+
+        marker.on('click', function() {
+          getAdresse(data.lat, data.lng, function(adresse) {
+            const popup = `
+              <strong>${data.name}</strong><br>
+              ${data.region} – Note : ${data.rating} ⭐<br>
+              ${data.club ? `Club : ${data.club}<br>` : ""}
+              <em>Adresse : ${adresse}</em><br>
+              ${currentUser && currentUser.uid === data.userId
+                ? `
+                  <div class="popup-btn delete-btn" onclick="supprimerTerrain('${data.id}')">🗑 Supprimer</div>
+                  <div class="popup-btn edit-btn" onclick="remplirFormulaire('${data.id}')">✏️ Modifier</div>
+                `
+                : ""}
+            `;
+            marker.bindPopup(popup).openPopup();
+          });
+        });
+
         markers.push(marker);
       });
     }
